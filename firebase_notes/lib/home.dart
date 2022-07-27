@@ -54,6 +54,21 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  getDataFilt()async{
+    var users=FirebaseFirestore.instance.collectionGroup('users');
+
+    await users.limit(1).orderBy("userName",descending: true).get().then((value) {
+      value.docs.forEach((element) {
+        print(element.data()['userName']);
+         print(element.data()['age']);
+
+       
+        
+      });
+    });
+
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -69,7 +84,7 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           MaterialButton(
             onPressed: () {
-              getDataByFilter();
+              getDataFilt();
             },
             child: Text('get'),
           )
