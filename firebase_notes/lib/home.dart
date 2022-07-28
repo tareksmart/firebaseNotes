@@ -13,20 +13,24 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   getData() async {
     //هنا احضرت كوليكشن كامل
-    var userdata = FirebaseFirestore.instance.collection('notes');
-    var snapShot =
-        await userdata.get().then((value) => value.docs.forEach((element) {
-              // print(element.data());
-              // print('=================');
+    var userdata = FirebaseFirestore.instance.collection('users');
+    var snapShot = await userdata
+        .orderBy('age', descending: false)
+        .endBefore([20])
+        .get()
+        .then((value) => value.docs.forEach((element) {
+              print(element.data()['userName']);
+              print(element.data()['age']);
+              print('=================');
             }));
     //هنا هاحضر document
-    var userData = FirebaseFirestore.instance
-        .collection('users')
-        .doc('6hkFRiWO420SekWJ6tlq');
-    await userData.get().then((value) {
-      print(value.id);
-      print('=================');
-    });
+    // var userData = FirebaseFirestore.instance
+    //     .collection('users')
+    //     .doc('6hkFRiWO420SekWJ6tlq');
+    // await userData.get().then((value) {
+    //   print(value.id);
+    //   print('=================');
+    // });
     // var docs = snapShot.docs;
     // docs.forEach((element) {
     //   print(element.data());
@@ -54,19 +58,66 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  getDataFilt()async{
-    var users=FirebaseFirestore.instance.collectionGroup('users');
+  getDataFilt() async {
+    var users = FirebaseFirestore.instance.collection('users');
 
-    await users.limit(1).orderBy("userName",descending: true).get().then((value) {
+    await users
+        .limit(1)
+        .orderBy("userName", descending: false)
+        .get()
+        .then((value) {
       value.docs.forEach((element) {
         print(element.data()['userName']);
-         print(element.data()['age']);
-
-       
-        
+        print(element.data()['age']);
       });
     });
+  }
 
+//سحب البيانات مباشر
+  getDataByRealTimeSnapShot() async {
+    var users = FirebaseFirestore.instance.collection('users');
+    await users.snapshots().listen((event) {
+      event.docs.forEach((element) {
+        print('userName:${element.data()['userName']}');
+        print('age:${element.data()['age']}');
+        print('email:${element.data()['email']}');
+        print('===========================');
+      });
+    });
+  }
+
+  addData() async {
+    var data = FirebaseFirestore.instance.collection('users');
+    // await data.add({
+    //   'userName': 'ali',
+    //   'age': '60',
+    //   'address': 'zannia'
+    // }); //اضافة بيانات لكن الفايربيس هو اللى بيكريت ال id
+
+//اضافة مستخدم او دوكيمنت ب اى  دى ثابت وممكن تختار اى دى موجود بالفعل وتعمله سيت لكن لو فى حقول موجوده هيبدلها بالجديد
+    // await data.doc('6hkFRiWO420SekWJ6tlq').set(
+    //     {'userName': 'tarek rabia', 'age': '37',
+    //     'email': 'tarek@gmail.com'});
+    //هنا هيعدل فقط الحقول المذكورة وهيسيب الباقى زى ماهو
+    // await data.doc('fDksiSXRyQErMxtZHIHt').set(
+    //     {'userName': 'tarek rabia', 'age': '37', 'email': 'tarek@gmail.com'},
+    //     SetOptions(merge: true));
+
+    // await data.doc('fDksiSXRyQErMxtZHIHt').set(
+    //     {'userName': 'tarek rabia', 'age': '37', 'email': 'tarek@gmail.com'},
+    //     SetOptions(mergeFields: ['userName','age3']));
+
+    // await data.doc('150120140').update({'userName': 'zezo'}).then((value) {
+    //   print('update succ');
+    // }).catchError((e) {
+    //   print(e);
+    // });
+
+    await data.doc('1501201400').delete().then((value) {
+      print('data deleted');
+    }).catchError((e) {
+      print(e);
+    });
   }
 
   @override
@@ -84,7 +135,7 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           MaterialButton(
             onPressed: () {
-              getDataFilt();
+              addData();
             },
             child: Text('get'),
           )
