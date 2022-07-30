@@ -1,3 +1,5 @@
+
+
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -120,13 +122,56 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  updateDataByTrans() async {
+    DocumentReference docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc('6hkFRiWO420SekWJ6tlq');
+
+    FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot docSnap = await transaction.get(docRef);
+      if (docSnap.exists) {
+        transaction.update(docRef, {"email": "40"});
+      }
+    });
+  }
+
+  batch() async {
+    DocumentReference doc1 = FirebaseFirestore.instance
+        .collection('users')
+        .doc('6hkFRiWO420SekWJ6tlq');
+
+    DocumentReference doc2 = FirebaseFirestore.instance
+        .collection('users')
+        .doc('fDksiSXRyQErMxtZHIHt');
+    WriteBatch batch = FirebaseFirestore.instance.batch();
+    batch.delete(doc1);
+    batch.update(doc2, {"address": "luxor"});
+    batch.commit();
+  }
+
+  List users = [];
+  getUsers() async {
+    var usersCol = FirebaseFirestore.instance.collection('users');
+
+   await usersCol.get().then((value) {
+      value.docs.forEach((element) {
+        setState(() {
+          users.add(element.data());
+        });
+        
+      });
+    });
+  }
+
   @override
   void initState() {
     // TODO: implement initState
+      getUsers();
     super.initState();
 
-    getData();
+  
   }
+  CollectionReference docRef=FirebaseFirestore.instance.collection('users');
 
   @override
   Widget build(BuildContext context) {
@@ -135,24 +180,42 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           MaterialButton(
             onPressed: () {
-              addData();
+               getUsers();
+               setState(() {
+                 
+               });
             },
             child: Text('get'),
           )
         ],
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
+        
         title: Text('home'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-          ],
-        ),
+        child:FutureBuilder<QuerySnapshot>
+        (future: docRef.get(),
+          builder: (context,snapshot){
+            if(snapshot==null)
+            {
+              return Text('no data');
+
+            }
+            if(snapshot.connectionState==ConnectionState.waiting)
+            {
+return CircularProgressIndicator();
+            }
+            if(snapshot.hasData){
+              return ListView.builder(itemCount: snapshot.data?.docs.length,
+                itemBuilder: ((context, index) {
+                  return ListTile(
+                    title:Text("${snapshot.data?.docs[index]['userName']}") ,
+                    subtitle: Text("${snapshot.data?.docs[index]['address']}") ,
+                  );
+
+              }));
+            }
+return Text('loading');
+          }) ,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
