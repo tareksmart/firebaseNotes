@@ -1,9 +1,13 @@
-
+import 'dart:io';
+import 'dart:math';
 
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
@@ -40,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // });
   }
 
-  getDataByFilter() async {
+  getDataByFilter(BuildContext ctx) async {
     var userData = FirebaseFirestore.instance.collection('users');
 
     await userData
@@ -52,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
         print(element.data());
         print('===========================================');
         AwesomeDialog(
-                context: context,
+                context: ctx,
                 body: Text(element.data().values.toString()),
                 width: 500)
             .show();
@@ -153,12 +157,11 @@ class _MyHomePageState extends State<MyHomePage> {
   getUsers() async {
     var usersCol = FirebaseFirestore.instance.collection('users');
 
-   await usersCol.get().then((value) {
+    await usersCol.get().then((value) {
       value.docs.forEach((element) {
         setState(() {
           users.add(element.data());
         });
-        
       });
     });
   }
@@ -166,12 +169,48 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     // TODO: implement initState
-      getUsers();
+    getDfilesAndDir();
+    //getUsers();
     super.initState();
-
-  
   }
-  CollectionReference docRef=FirebaseFirestore.instance.collection('users');
+
+  var imagePic = ImagePicker();
+  pickImage() async {
+    File file;
+    var imagePi = await imagePic.getImage(source: ImageSource.camera);
+    if (imagePi != null) {
+      file = File(imagePi.path);
+      //رقم عشوائى واضافته الى اسم الصورة لعدم تكراره
+      var random=Random().nextInt(1000);
+      var imageName = '$random'+basename(file.path);
+      // var refStorage = FirebaseStorage.instance.ref(
+      //     'images/$imageName'); //عملنا فولدر اسمه images جواه الصورة اللى هتترفع
+      //طريقة تانية لخلق مسارات
+      var refStorage = FirebaseStorage.instance.ref(
+          'images').child('part').child('$imageName');
+      
+      await refStorage.putFile(file);
+      var url = await refStorage.getDownloadURL();
+
+      print(url);
+    }
+  }
+
+  getDfilesAndDir()async{
+    var ref=await FirebaseStorage.instance.ref().list();//ref فقط يعمل وصول للجذر
+    ref.items.forEach((element) {
+      print('===================');
+      print(element.name);
+    });
+  }
+  getDirectory()async{//للحصول على اسماء الفولدرات
+    var ref=await FirebaseStorage.instance.ref().list();
+
+    ref.prefixes.forEach((element) {print(element.name);
+    });
+  }
+
+  CollectionReference docRef = FirebaseFirestore.instance.collection('users');
 
   @override
   Widget build(BuildContext context) {
@@ -180,45 +219,44 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           MaterialButton(
             onPressed: () {
-               getUsers();
-               setState(() {
-                 
-               });
+              getUsers();
+              setState(() {});
             },
             child: Text('get'),
           )
         ],
-        
         title: Text('home'),
       ),
       body: Center(
-        child:FutureBuilder<QuerySnapshot>
-        (future: docRef.get(),
-          builder: (context,snapshot){
-            if(snapshot==null)
-            {
-              return Text('no data');
-
-            }
-            if(snapshot.connectionState==ConnectionState.waiting)
-            {
-return CircularProgressIndicator();
-            }
-            if(snapshot.hasData){
-              return ListView.builder(itemCount: snapshot.data?.docs.length,
-                itemBuilder: ((context, index) {
-                  return ListTile(
-                    title:Text("${snapshot.data?.docs[index]['userName']}") ,
-                    subtitle: Text("${snapshot.data?.docs[index]['address']}") ,
-                  );
-
-              }));
-            }
-return Text('loading');
-          }) ,
+        child: FutureBuilder<QuerySnapshot>(
+            future: docRef.get(),
+            builder: (context, snapshot) {
+              if (snapshot == null) {
+                return Text('no data');
+              }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              }
+              if (snapshot.hasData) {
+                return ListView.builder(
+                    itemCount: snapshot.data?.docs.length,
+                    itemBuilder: ((context, index) {
+                      return ListTile(
+                        title:
+                            Text("${snapshot.data?.docs[index]['userName']}"),
+                        subtitle:
+                            Text("${snapshot.data?.docs[index]['address']}"),
+                      );
+                    }));
+              }
+              return Text('loading');
+            }),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () async {
+          // await pickImage();
+          await getDirectory();
+        },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
